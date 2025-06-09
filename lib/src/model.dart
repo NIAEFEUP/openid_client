@@ -1,5 +1,6 @@
 library openid.model;
 
+// ignore: implementation_imports
 import 'package:jose/src/util.dart';
 import 'package:jose/jose.dart';
 import 'package:clock/clock.dart';

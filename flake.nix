@@ -2,7 +2,7 @@
   description = "A basic flake for Flutter development with Nix and NixOS";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs?ref=pull/412907/merge";
     utils.url = "github:limwa/nix-flake-utils";
 
     # Needed for shell.nix
@@ -14,7 +14,7 @@
     utils,
     ...
   }:
-    utils.lib.mkFlake {
+    utils.lib.mkFlakeWith {
       forEachSystem = system: let
         pkgs = import nixpkgs {
           inherit system;
@@ -25,15 +25,14 @@
         };
 
         androidComposition = pkgs.androidenv.composeAndroidPackages {
-          # platformVersions = [ "35" ];
-          # buildToolsVersions = [ "35.0.0" ];
-          # cmakeVersions = [ "3.22.1" ];
-
           includeSystemImages = "if-supported";
           includeEmulator = "if-supported";
-
           includeNDK = "if-supported";
-          # ndkVersions = [ "25.1.8937393" ];
+
+          buildToolsVersions = [ "34.0.0" ];
+          cmakeVersions = [ "3.22.1" ];
+          ndkVersions = ["27.0.12077973"];
+          platformVersions = [ "35" ];
         };
 
 
@@ -43,7 +42,7 @@
         # Reuse the same Android SDK, JDK and Flutter versions across all derivations
         androidSdk = androidComposition.androidsdk;
         flutter = pkgs.flutter332;
-        jdk = pkgs.jdk17;
+        jdk = pkgs.jdk;
       };
     } {
       formatter = {pkgs, ...}: pkgs.alejandra;
@@ -60,8 +59,9 @@
 
           packages = [
             androidSdk
-            jdk
             flutter
+            jdk
+            pkgs.gradle
 
             (pkgs.writeShellApplication {
               name = "emulator-setup";
@@ -79,17 +79,20 @@
                 avdmanager list avd
               '';
             })
+
+            (pkgs.writeShellApplication {
+              name = "emulator-launch";
+
+              text = ''
+                flutter emulators --launch "${EMULATOR_NAME}"
+              '';
+            })
           ];
 
           LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [ libGL];
           ANDROID_HOME = "${androidSdk}/libexec/android-sdk";
           ANDROID_NDK_ROOT = "${ANDROID_HOME}/ndk-bundle";
           JAVA_HOME = "${jdk}";
-
-          shellHook = ''
-            echo "Your development environment is ready!"
-            echo "To edit this message, modify the shellHook in flake.nix"
-          '';
         };
     };
 }
