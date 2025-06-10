@@ -25,24 +25,22 @@
         };
 
         androidComposition = pkgs.androidenv.composeAndroidPackages {
-          includeSystemImages = "if-supported";
           includeEmulator = "if-supported";
           includeNDK = "if-supported";
+          includeSystemImages = "if-supported";
 
-          buildToolsVersions = [ "34.0.0" ];
-          cmakeVersions = [ "3.22.1" ];
+          buildToolsVersions = ["34.0.0"];
+          cmakeVersions = ["3.22.1"];
+          platformVersions = ["35"];
           ndkVersions = ["27.0.12077973"];
-          platformVersions = [ "35" ];
         };
-
-
       in {
         inherit pkgs;
 
         # Reuse the same Android SDK, JDK and Flutter versions across all derivations
         androidSdk = androidComposition.androidsdk;
         flutter = pkgs.flutter332;
-        jdk = pkgs.jdk;
+        jdk = pkgs.jdk17;
       };
     } {
       formatter = {pkgs, ...}: pkgs.alejandra;
@@ -57,11 +55,14 @@
         pkgs.mkShell rec {
           EMULATOR_NAME = "my_emulator";
 
+          ANDROID_HOME = "${androidSdk}/libexec/android-sdk";
+          JAVA_HOME = "${jdk}";
+          LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [libGL];
+
           packages = [
             androidSdk
             flutter
             jdk
-            pkgs.gradle
 
             (pkgs.writeShellApplication {
               name = "emulator-setup";
@@ -88,11 +89,6 @@
               '';
             })
           ];
-
-          LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [ libGL];
-          ANDROID_HOME = "${androidSdk}/libexec/android-sdk";
-          ANDROID_NDK_ROOT = "${ANDROID_HOME}/ndk-bundle";
-          JAVA_HOME = "${jdk}";
         };
     };
 }
